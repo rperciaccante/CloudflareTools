@@ -41,6 +41,11 @@ $hostsToTest = @(
 )
 
 # Start the connection tests
+Write-Host "`nCloudflared connection test script." -ForegroundColor Yellow
+Write-Host "`n-----------------------------------." -ForegroundColor Yellow
+Write-Host "`nThis script will test the connections needed for a cloudflared tunnel to connect to the Cloudflare edge, based on the document located at https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/configure-tunnels/tunnel-with-firewall/" -ForegroundColor Yellow
+
+
 Write-Host "Starting TCP/UDP connection tests..." -ForegroundColor Yellow
 
 # Iterate through each host/port combination and perform the test
