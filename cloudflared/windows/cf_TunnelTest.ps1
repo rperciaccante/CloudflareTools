@@ -9,12 +9,12 @@
    indicate which tests passed and which failed, along with a custom description.
 
 .NOTES
-   Author: Gemini
-   Date: October 26, 2023
-   Version: 1.6
- 
-   Update: Added a 'Description' property to the test objects and included it
-   in the output for clearer test results.
+    Author: Gemini
+    Date: October 26, 2023
+    Version: 1.7
+    
+    Update: Added explicit IPv6 examples. The script supports IPv6 addresses 
+    natively when provided in the Hostname property.
 
 .EXAMPLE
    .\test_connections.ps1
@@ -28,25 +28,28 @@
 # The Protocol property should be either "TCP" or "UDP".
 clear
 $hostsToTest = @(
-   [PSCustomObject]@{ Hostname = "region1.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared Global Region 1 (http2)" },
-   [PSCustomObject]@{ Hostname = "region1.v2.argotunnel.com"; Port = 7844; Protocol = "UDP"; Description = "Cloudflared Global Region 1 (quic)" },
-   [PSCustomObject]@{ Hostname = "region2.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared Global Region 2 (http2)" },
-   [PSCustomObject]@{ Hostname = "region2.v2.argotunnel.com"; Port = 7844; Protocol = "UDP"; Description = "Cloudflared Global Region 2 (quic)" },
-   [PSCustomObject]@{ Hostname = "us-region1.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared US Region 1 (http2)" },
-   [PSCustomObject]@{ Hostname = "us-region1.v2.argotunnel.com"; Port = 7844; Protocol = "UDP"; Description = "Cloudflared US Region 1 (quic)" },
-   [PSCustomObject]@{ Hostname = "us-region2.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared US Region 2 (http2)" },
-   [PSCustomObject]@{ Hostname = "us-region2.v2.argotunnel.com"; Port = 7844; Protocol = "UDP"; Description = "Cloudflared US Region 2 (quic)" },
-   [PSCustomObject]@{ Hostname = "api.cloudflare.com"; Port = 443; Protocol = "TCP"; Description = "Cloudflared Update Server (HTTPS)" },
-   [PSCustomObject]@{ Hostname = "update.argotunnel.com"; Port = 443; Protocol = "TCP"; Description = "Cloudflared Update Server (HTTPS)" }
+    # IPv4 Examples
+    [PSCustomObject]@{ Hostname = "region1.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared Global Region 1 (http2)" },
+    [PSCustomObject]@{ Hostname = "api.cloudflare.com"; Port = 443; Protocol = "TCP"; Description = "Cloudflared Update Server (HTTPS)" },
+    
+    # IPv6 Examples (Ensure your network adapter has IPv6 connectivity)
+    [PSCustomObject]@{ Hostname = "2001:4860:4860::8888"; Port = 53; Protocol = "UDP"; Description = "Google DNS (IPv6)" },
+    [PSCustomObject]@{ Hostname = "ipv6.google.com"; Port = 443; Protocol = "TCP"; Description = "Google HTTPS (IPv6)" },
+
+    # Additional IPv4 Examples
+    [PSCustomObject]@{ Hostname = "region2.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared Global Region 2 (http2)" },
+    [PSCustomObject]@{ Hostname = "us-region1.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared US Region 1 (http2)" },
+    [PSCustomObject]@{ Hostname = "us-region2.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared US Region 2 (http2)" },
+    [PSCustomObject]@{ Hostname = "update.argotunnel.com"; Port = 443; Protocol = "TCP"; Description = "Cloudflared Update Server (HTTPS)" }
 )
 
 # Start the connection tests
 Write-Host "`nCloudflared connection test script." -ForegroundColor Yellow
-Write-Host "`n-----------------------------------." -ForegroundColor Yellow
-Write-Host "`nThis script will test the connections needed for a cloudflared tunnel to connect to the Cloudflare edge, based on the document located at https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/configure-tunnels/tunnel-with-firewall/" -ForegroundColor Yellow
+Write-Host "-------------------------------------" -ForegroundColor Yellow
+Write-Host "`nThis script will test the connections needed for a cloudflared tunnel to connect to the Cloudflare edge, based on the document located at " -ForegroundColor Yellow
+Write-Host " https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/configure-tunnels/tunnel-with-firewall/" -ForegroundColor Green
 
-
-Write-Host "Starting TCP/UDP connection tests..." -ForegroundColor Yellow
+Write-Host "`nStarting TCP/UDP connection tests..." -ForegroundColor Yellow
 
 # Iterate through each host/port combination and perform the test
 foreach ($test in $hostsToTest) {
