@@ -42,7 +42,7 @@ tests=(
     "us-region2.v2.argotunnel.com,7844,TCP,Cloudflared US Region 2 (http2)"
     "api.cloudflare.com,443,TCP,Cloudflared Update Server (HTTPS)"
     "update.argotunnel.com,443,TCP,Cloudflared Update Server (HTTPS)"
-    "8.8.8.8,53,UDP,Google DNS Query (UDP)"
+    "1.1.1.1,53,UDP,Cloudflare DNS Query (UDP)"
 )
 
 echo -e "${YELLOW}Starting TCP/UDP connection tests...${NC}"
