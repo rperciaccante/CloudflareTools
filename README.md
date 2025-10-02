@@ -9,5 +9,5 @@ These are a collection of tools I have put together on an ad hoc basis to help t
   Bash script that will test the ability to connect to Cloudflare cloudflared endpoints
 
 ## WARP client
-- [warp/windows/windows-fw/readme.md](warp/windows/windows-fw/readme.md) \
+- [windows/windows-fw/readme.md](warp/windows/windows-fw/readme.md) \
   Powershell commands to modify local Windows firewall to allow for WARP connectivity
