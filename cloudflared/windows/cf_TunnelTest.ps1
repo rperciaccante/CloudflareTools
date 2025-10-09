@@ -9,19 +9,23 @@
    indicate which tests passed and which failed, along with a custom description.
 
 .NOTES
-   Author: Gemini
-   Date: October 26, 2023
+   Original Author: 
+   Gemini
+   
+   Maintaining Author:
+   Bob Perciaccante
 
-   Version: 1.7
-   Update: Added explicit IPv6 examples. The script supports IPv6 addresses 
-   natively when provided in the Hostname property.
+   Version: 1.8 - October 9, 2025
+   - Added tests for QUIC protocol (UDP/7844)
+   - Added test for DNS (UDP/53) to Cloudflare 1.1.1.1
 
 .EXAMPLE
    .\test_connections.ps1
    This will run the script and display the test results to the console.
 
-.LINK
-   https://learn.microsoft.com/en-us/powershell/module/net-core/test-netconnection
+.LINKs
+   - Cloudflare "Tunnel with Firewall"
+     https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/configure-tunnels/tunnel-with-firewall/
    
 #>
 
@@ -30,19 +34,30 @@
 
 clear
 $hostsToTest = @(
-# IPv4 Examples
-   [PSCustomObject]@{ Hostname = "region1.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared Global Region 1 (http2)" },
-   [PSCustomObject]@{ Hostname = "api.cloudflare.com"; Port = 443; Protocol = "TCP"; Description = "Cloudflared Update Server (HTTPS)" },
 
-# IPv6 Examples (Ensure your network adapter has IPv6 connectivity)
-   [PSCustomObject]@{ Hostname = "2001:4860:4860::8888"; Port = 53; Protocol = "UDP"; Description = "Google DNS (IPv6)" },
-   [PSCustomObject]@{ Hostname = "ipv6.google.com"; Port = 443; Protocol = "TCP"; Description = "Google HTTPS (IPv6)" }, 
-   
-# Additional IPv4 Examples
-  [PSCustomObject]@{ Hostname = "region2.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared Global Region 2 (http2)" },
-  [PSCustomObject]@{ Hostname = "us-region1.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared US Region 1 (http2)" },
-  [PSCustomObject]@{ Hostname = "us-region2.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared US Region 2 (http2)" },
-  [PSCustomObject]@{ Hostname = "update.argotunnel.com"; Port = 443; Protocol = "TCP"; Description = "Cloudflared Update Server (HTTPS)" }
+   # Cloudflare Global Region 1
+   [PSCustomObject]@{ Hostname = "region1.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared Global Region 1 (http2)" },
+   [PSCustomObject]@{ Hostname = "region1.v2.argotunnel.com"; Port = 7844; Protocol = "UDP"; Description = "Cloudflared Global Region 1 (quic)" },
+
+   # Cloudflare Global Region 2
+   [PSCustomObject]@{ Hostname = "region2.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared Global Region 2 (http2)" },
+   [PSCustomObject]@{ Hostname = "region2.v2.argotunnel.com"; Port = 7844; Protocol = "UDP"; Description = "Cloudflared Global Region 2 (quic)" },
+
+   # Cloudflare US Region 1
+   [PSCustomObject]@{ Hostname = "us-region1.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared US Region 1 (http2)" },
+   [PSCustomObject]@{ Hostname = "us-region1.v2.argotunnel.com"; Port = 7844; Protocol = "UDP"; Description = "Cloudflared US Region 1 (quic)" },
+
+   # Cloudflare US Region 2
+   [PSCustomObject]@{ Hostname = "us-region2.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared US Region 2 (http2)" },
+   [PSCustomObject]@{ Hostname = "us-region2.v2.argotunnel.com"; Port = 7844; Protocol = "UDP"; Description = "Cloudflared US Region 2 (quic)" },
+
+   # Cloudflare software update check
+   [PSCustomObject]@{ Hostname = "api.cloudflare.com"; Port = 443; Protocol = "TCP"; Description = "Cloudflared Update Server (HTTPS)" },
+   [PSCustomObject]@{ Hostname = "update.argotunnel.com"; Port = 443; Protocol = "TCP"; Description = "Cloudflared Update Server (HTTPS)" },
+
+   # DNS Check to Cloudflare
+   [PSCustomObject]@{ Hostname = "1.1.1.1"; Port = 53; Protocol = "UDP"; Description = "Cloudflare DNS (Puplic Primary)" },
+   [PSCustomObject]@{ Hostname = "1.0.0.1"; Port = 53; Protocol = "UDP"; Description = "Cloudflare DNS (Puplic Secondary)" }
   
   )
   
