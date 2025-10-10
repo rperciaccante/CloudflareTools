@@ -11,12 +11,15 @@
 #     passed and which failed, along with a custom description.
 #
 # NOTES
-#     Author: Gemini
-#     Date: October 26, 2023
-#     Version: 1.2
+#  Original Author: 
+#  Gemini
+#   
+#   Maintaining Author:
+#   Bob Perciaccante
 #
-#     Reverted to using 'nc' (netcat) for connection testing as requested.
-#     Note: This script requires 'nc' (netcat) to be installed on the system.
+#   Version: 1.3 - October 10, 2025
+#   - Added tests for QUIC protocol (UDP/7844)
+#   - Added test for DNS (UDP/53) to Cloudflare 1.1.1.1/1.0.0.1
 #
 # EXAMPLE
 #     ./test_connections.sh
@@ -36,13 +39,29 @@ NC='\033[0m' # No Color
 # Each entry is a string with values separated by commas.
 # The Protocol should be either "TCP" or "UDP".
 tests=(
+    # Cloudflare Global Region 1
     "region1.v2.argotunnel.com,7844,TCP,Cloudflared Global Region 1 (http2)"
+    "region1.v2.argotunnel.com,7844,UDP,Cloudflared Global Region 1 (quic)"
+
+    # Cloudflare Global Region 2
     "region2.v2.argotunnel.com,7844,TCP,Cloudflared Global Region 2 (http2)"
+    "region2.v2.argotunnel.com,7844,UDP,Cloudflared Global Region 2 (quic)"
+
+    # Cloudflare US Region 1
     "us-region1.v2.argotunnel.com,7844,TCP,Cloudflared US Region 1 (http2)"
+    "us-region1.v2.argotunnel.com,7844,UDP,Cloudflared US Region 1 (quic)"
+
+    # Cloudflare US Region 2
     "us-region2.v2.argotunnel.com,7844,TCP,Cloudflared US Region 2 (http2)"
+    "us-region2.v2.argotunnel.com,7844,UDP,Cloudflared US Region 2 (quic)"
+
+    # Cloudflare software update check
     "api.cloudflare.com,443,TCP,Cloudflared Update Server (HTTPS)"
     "update.argotunnel.com,443,TCP,Cloudflared Update Server (HTTPS)"
+
+    # DNS Check to Cloudflare
     "1.1.1.1,53,UDP,Cloudflare DNS Query (UDP)"
+    "1.0.0.1,53,UDP,Cloudflare DNS Query (UDP)"
 )
 
 echo -e "${YELLOW}Starting TCP/UDP connection tests...${NC}"
