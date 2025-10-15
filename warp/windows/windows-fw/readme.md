@@ -15,7 +15,7 @@
   <td>
         
   ```powershell
-New-NetFirewallRule -DisplayName "Allow Warp-Svc Inbound" -Direction Inbound -Program "C:\Program Files\Cloudflare\Cloudflare WARP\warp-svc.exe" -Action Allow -Profile Any  ```
+New-NetFirewallRule -DisplayName "Allow Warp-Svc Inbound" -Direction Inbound -Program "C:\Program Files\Cloudflare\Cloudflare WARP\warp-svc.exe" -Action Allow -Profile Any 
   ```
 </td>
   </tr>
@@ -26,7 +26,7 @@ New-NetFirewallRule -DisplayName "Allow Warp-Svc Inbound" -Direction Inbound -Pr
   <td>
         
   ```powershell
-New-NetFirewallRule -DisplayName "Allow Warp-Svc Outbound" -Direction Outbound -Program "C:\Program Files\Cloudflare\Cloudflare WARP\warp-svc.exe" -Action Allow -Profile Any  ```
+New-NetFirewallRule -DisplayName "Allow Warp-Svc Outbound" -Direction Outbound -Program "C:\Program Files\Cloudflare\Cloudflare WARP\warp-svc.exe" -Action Allow -Profile Any
   ```
   </td>
   </tr>
