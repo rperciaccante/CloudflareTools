@@ -40,20 +40,20 @@ NC='\033[0m' # No Color
 # The Protocol should be either "TCP" or "UDP".
 tests=(
     # Cloudflare Global Region 1
-    "region1.v2.argotunnel.com,7844,TCP,Cloudflared Global Region 1 (http2)"
-    "region1.v2.argotunnel.com,7844,UDP,Cloudflared Global Region 1 (quic)"
+    "region1.v2.argotunnel.com,7844,TCP,Cloudflare Global Region 1 (http2)"
+    "region1.v2.argotunnel.com,7844,UDP,Cloudflare Global Region 1 (quic)"
 
     # Cloudflare Global Region 2
-    "region2.v2.argotunnel.com,7844,TCP,Cloudflared Global Region 2 (http2)"
-    "region2.v2.argotunnel.com,7844,UDP,Cloudflared Global Region 2 (quic)"
+    "region2.v2.argotunnel.com,7844,TCP,Cloudflare Global Region 2 (http2)"
+    "region2.v2.argotunnel.com,7844,UDP,Cloudflare Global Region 2 (quic)"
 
     # Cloudflare US Region 1
-    "us-region1.v2.argotunnel.com,7844,TCP,Cloudflared US Region 1 (http2)"
-    "us-region1.v2.argotunnel.com,7844,UDP,Cloudflared US Region 1 (quic)"
+    "us-region1.v2.argotunnel.com,7844,TCP,Cloudflare US Region 1 (http2)"
+    "us-region1.v2.argotunnel.com,7844,UDP,Cloudflare US Region 1 (quic)"
 
     # Cloudflare US Region 2
-    "us-region2.v2.argotunnel.com,7844,TCP,Cloudflared US Region 2 (http2)"
-    "us-region2.v2.argotunnel.com,7844,UDP,Cloudflared US Region 2 (quic)"
+    "us-region2.v2.argotunnel.com,7844,TCP,Cloudflare US Region 2 (http2)"
+    "us-region2.v2.argotunnel.com,7844,UDP,Cloudflare US Region 2 (quic)"
 
     # Cloudflare software update check
     "api.cloudflare.com,443,TCP,Cloudflared Update Server (HTTPS)"
