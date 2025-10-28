@@ -53,103 +53,97 @@ Note: If only three parts are provided (e.g., 2025.7.176), a **.0** will be appe
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)]
-    [string]$teamName,
+    [string]$TeamName,
     [Parameter(Mandatory=$true)]
-    [string]$displayName,
+    [string]$DisplayName,
     [Parameter(Mandatory=$false)]
-    [string]$InstallerPath,      # New optional parameter for existing file path
+    [string]$InstallerPath,
     [Parameter(Mandatory=$false)]
-    [string]$Version = "latest"  # New optional parameter for version, defaults to "latest"
+    [string]$Version = 'latest'
 )
 
-# --- Configuration Variables ---
-$DownloadDirectory = "$env:TEMP" # Location where the MSI is stored temporarily (if downloaded)
-$BaseDownloadUrl = "https://downloads.cloudflareclient.com/v1/download/windows"
-$FileName = "Cloudflare_WARP_Installer.msi"
-$FilePath = Join-Path -Path $DownloadDirectory -ChildPath $FileName
+# Configuration Variables
+$DownloadDirectory = "$env:TEMP"
+$BaseDownloadUrl = 'https://downloads.cloudflareclient.com/v1/download/windows'
+$InstallerFileName = 'Cloudflare_WARP_Installer.msi'
+$FilePath = Join-Path -Path $DownloadDirectory -ChildPath $InstallerFileName
 $LogPath = "$env:TEMP\WARP_Installation.log"
-$InstallerDownloaded = $false # Flag to track if this script performed the download
+$InstallerDownloaded = $false
+$ServiceInitDelaySeconds = 30
+$MaxRedirections = 5
 
-# MDM Configuration Path
-$MdmFileName = "mdm.xml"
-$MdmDirectory = "C:\ProgramData\Cloudflare"
-$MdmFilePath = Join-Path -Path $MdmDirectory -ChildPath $MdmFileName
+# MDM Configuration
+$MdmDirectory = 'C:\ProgramData\Cloudflare'
+$MdmFilePath = Join-Path -Path $MdmDirectory -ChildPath 'mdm.xml'
 
 # WebView2 Configuration
-$WebView2DownloadUrl = "https://go.microsoft.com/fwlink/?linkid=2124701"
-$WebView2FileName = "MicrosoftEdgeWebview2Setup.exe"
-$WebView2FilePath = Join-Path -Path $DownloadDirectory -ChildPath $WebView2FileName
-$CloudflareRegPath = "HKLM:\SOFTWARE\Cloudflare\CloudflareWARP"
+$WebView2DownloadUrl = 'https://go.microsoft.com/fwlink/?linkid=2124701'
+$WebView2FilePath = Join-Path -Path $DownloadDirectory -ChildPath 'MicrosoftEdgeWebview2Setup.exe'
+$CloudflareRegPath = 'HKLM:\SOFTWARE\Cloudflare\CloudflareWARP'
 $WebView2RegKey = 'HKLM:\SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BC9-5D88BF0201AA}'
+$WebView2Downloaded = $false
 
 
-# 1. Check for Administrative Rights
-Write-Host "Checking for administrative rights..." -ForegroundColor Yellow
+Write-Host 'Checking for administrative rights...' -ForegroundColor Yellow
 if (-not ([Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))) {
-    Write-Error "Error: This script must be run with Administrator privileges."
-    Write-Host "Please right-click the PowerShell window and select 'Run as administrator'." -ForegroundColor Red
+    Write-Error 'Error: This script must be run with Administrator privileges.'
+    Write-Host 'Please right-click the PowerShell window and select ''Run as administrator''.' -ForegroundColor Red
     exit 1
 }
-Write-Host "Administrative rights confirmed. Continuing..." -ForegroundColor Green
+Write-Host 'Administrative rights confirmed. Continuing...' -ForegroundColor Green
 
 
-# 2. Check and Prepare MDM Directory
 Write-Host "Checking required directory access for MDM file: $MdmDirectory..." -ForegroundColor Yellow
-if (-not (Test-Path -Path $MdmDirectory)) {
+if (-not (Test-Path -Path $MdmDirectory -PathType Container)) {
     try {
         Write-Host "Directory does not exist. Attempting to create: $MdmDirectory" -ForegroundColor Cyan
         New-Item -Path $MdmDirectory -ItemType Directory -Force | Out-Null
-        Write-Host "Directory created successfully." -ForegroundColor Green
+        Write-Host 'Directory created successfully.' -ForegroundColor Green
     }
     catch {
         Write-Error "Error: Failed to create or access the required MDM directory '$MdmDirectory'. The script cannot proceed without administrative write access to this location. Details: $($_.Exception.Message)"
         exit 1
     }
 }
-Write-Host "MDM directory access confirmed." -ForegroundColor Green
+Write-Host 'MDM directory access confirmed.' -ForegroundColor Green
 
 
-# 3. Check for and install Microsoft WebView2 Runtime
-Write-Host "Checking for Microsoft WebView2 Runtime..." -ForegroundColor Yellow
+Write-Host 'Checking for Microsoft WebView2 Runtime...' -ForegroundColor Yellow
 
-$WebView2Check = Get-ItemProperty -Path $WebView2RegKey -ErrorAction SilentlyContinue
-
-if (-not $WebView2Check) {
-    Write-Host "WebView2 Runtime not found. Attempting download and installation..." -ForegroundColor Cyan
+if (-not (Test-Path -Path $WebView2RegKey)) {
+    Write-Host 'WebView2 Runtime not found. Attempting download and installation...' -ForegroundColor Cyan
     
-    # 3a. Download WebView2 Installer
     try {
         Write-Host "Downloading WebView2 installer from $WebView2DownloadUrl..." -ForegroundColor Cyan
-        Invoke-WebRequest -Uri $WebView2DownloadUrl -OutFile $WebView2FilePath -MaximumRedirection 5
-        Write-Host "WebView2 installer downloaded successfully." -ForegroundColor Green
+        Invoke-WebRequest -Uri $WebView2DownloadUrl -OutFile $WebView2FilePath -MaximumRedirection $MaxRedirections
+        Write-Host 'WebView2 installer downloaded successfully.' -ForegroundColor Green
+        $WebView2Downloaded = $true
 
-        # 3b. Install WebView2 Silently
-        Write-Host "Installing WebView2 Runtime silently..." -ForegroundColor Yellow
-        # The /wait flag is important to ensure the script pauses until installation is complete
-        Start-Process -FilePath $WebView2FilePath -ArgumentList "/install /silent /wait" -Wait -PassThru | Out-Null
+        Write-Host 'Installing WebView2 Runtime silently...' -ForegroundColor Yellow
+        $WebView2Process = Start-Process -FilePath $WebView2FilePath -ArgumentList '/install /silent /wait' -Wait -PassThru
         
-        Write-Host "WebView2 Runtime installation finished." -ForegroundColor Green
-
+        if ($WebView2Process.ExitCode -eq 0) {
+            Write-Host 'WebView2 Runtime installation completed successfully.' -ForegroundColor Green
+        } else {
+            Write-Warning "WebView2 installation finished with exit code: $($WebView2Process.ExitCode). Continuing with WARP installation."
+        }
     }
     catch {
         Write-Error "Error: Failed to download or install Microsoft WebView2 Runtime. Cloudflare WARP client may not function correctly. Details: $($_.Exception.Message)"
-        Write-Warning "WebView2 installation failed. Continuing with WARP installation."
+        Write-Warning 'WebView2 installation failed. Continuing with WARP installation.'
     }
 }
 else {
-    Write-Host "WebView2 Runtime detected. Skipping installation." -ForegroundColor Green
+    Write-Host 'WebView2 Runtime detected. Skipping installation.' -ForegroundColor Green
 }
 
 
-# 4. Add WebView2 Registry Key
-Write-Host "Adding UseWebView2 registry key..." -ForegroundColor Yellow
+Write-Host 'Adding UseWebView2 registry key...' -ForegroundColor Yellow
 try {
-    # Ensure the CloudflareWARP path exists
-    if (-not (Test-Path -Path $CloudflareRegPath -ErrorAction SilentlyContinue)) {
+    if (-not (Test-Path -Path $CloudflareRegPath)) {
         New-Item -Path $CloudflareRegPath -Force | Out-Null
     }
-    # Add the UseWebView2 key (REG_SZ type, value 'y')
-    Set-ItemProperty -Path $CloudflareRegPath -Name "UseWebView2" -Type String -Value "y" -Force | Out-Null
+    Set-ItemProperty -Path $CloudflareRegPath -Name 'UseWebView2' -Type String -Value 'y' -Force
     Write-Host "Registry key $CloudflareRegPath\UseWebView2 set successfully." -ForegroundColor Green
 }
 catch {
@@ -157,10 +151,8 @@ catch {
 }
 
 
-# 5. Determine Installer Path and Handle Download
-Write-Host "Starting installer validation and download step..." -ForegroundColor Yellow
+Write-Host 'Starting installer validation and download step...' -ForegroundColor Yellow
 
-# Case A: User provided a specific path to an existing installer file
 if (-not [string]::IsNullOrWhiteSpace($InstallerPath)) {
     if (Test-Path -Path $InstallerPath -PathType Leaf) {
         $FilePath = $InstallerPath
@@ -171,48 +163,34 @@ if (-not [string]::IsNullOrWhiteSpace($InstallerPath)) {
         exit 1
     }
 }
-# Case B: No path provided, handle download logic
 else {
-    # --- New Version Normalization and URL Construction ---
-    $TargetVersion = $Version
-    
-    if ($Version -ne "latest") {
+    if ($Version -ne 'latest') {
         $VersionParts = $Version.Split('.')
-        # Check if version has 3 parts and correct it to 4 parts by appending .0
         if ($VersionParts.Count -eq 3) {
-            $TargetVersion = "$Version.0"
-            Write-Host "Version '$Version' normalized to '$TargetVersion' (four parts) for download." -ForegroundColor Cyan
+            $Version = "$Version.0"
+            Write-Host "Version normalized to '$Version' (four parts) for download." -ForegroundColor Cyan
         }
     }
 
-    # Construct the final download URL
-    if ($TargetVersion -eq "latest") {
-        # Latest version uses the 'ga' endpoint
-        $DownloadTarget = "ga"
-        $FinalDownloadUrl = "$BaseDownloadUrl/$DownloadTarget"
+    if ($Version -eq 'latest') {
+        $FinalDownloadUrl = "$BaseDownloadUrl/ga"
     } else {
-        # Specific version uses the new '/version/' endpoint and includes the filename
-        # Format: https://downloads.cloudflareclient.com/v1/download/windows/version/[version]/Cloudflare_WARP_Installer.msi
-        $DownloadTarget = "version/$TargetVersion/$FileName"
-        $FinalDownloadUrl = "$BaseDownloadUrl/$DownloadTarget"
+        $FinalDownloadUrl = "$BaseDownloadUrl/version/$Version/$InstallerFileName"
     }
-    # --- End New Version Normalization and URL Construction ---
     
     Write-Host "Version specified: '$Version'. Target URL: $FinalDownloadUrl" -ForegroundColor Cyan
 
-    if (Test-Path -Path $FilePath) {
+    if (Test-Path -Path $FilePath -PathType Leaf) {
         Write-Host "Installer already exists in temp directory: '$FilePath'. Skipping download." -ForegroundColor Cyan
     }
     else {
-        # File does not exist, proceed with download
-        Write-Host "Installer not found. Downloading Cloudflare WARP installer..." -ForegroundColor Yellow
+        Write-Host 'Installer not found. Downloading Cloudflare WARP installer...' -ForegroundColor Yellow
         try {
-            if (-not (Test-Path -Path $DownloadDirectory)) {
+            if (-not (Test-Path -Path $DownloadDirectory -PathType Container)) {
                 New-Item -Path $DownloadDirectory -ItemType Directory | Out-Null
             }
             
-            # Use Invoke-WebRequest to download the file, following redirects up to 5 times.
-            Invoke-WebRequest -Uri $FinalDownloadUrl -OutFile $FilePath -MaximumRedirection 5
+            Invoke-WebRequest -Uri $FinalDownloadUrl -OutFile $FilePath -MaximumRedirection $MaxRedirections
             Write-Host "Download successful. File saved to: '$FilePath'" -ForegroundColor Green
             $InstallerDownloaded = $true
         }
@@ -224,57 +202,50 @@ else {
 }
 
 
-# 6. Execute the Silent Installation
 $MsiArguments = @(
-    "/i",
+    '/i',
     "`"$FilePath`"",
-    "/qn", # /qn for completely silent installation
-    "/l*v", "`"$LogPath`"", # Logging for troubleshooting
-    "ORGANIZATION=`"$teamName`"",
-    "ONBOARDING=false",
-    "AUTOCONNECT=true" # Enables autoconnect after installation
+    '/qn',
+    '/l*v', "`"$LogPath`"",
+    "ORGANIZATION=`"$TeamName`"",
+    'ONBOARDING=false',
+    'AUTOCONNECT=true'
 )
 
-Write-Host "Starting silent installation for Team: '$teamName' (Autoconnect enabled)..." -ForegroundColor Yellow
+Write-Host "Starting silent installation for Team: '$TeamName' (Autoconnect enabled)..." -ForegroundColor Yellow
 try {
-    # Use Start-Process to run msiexec.exe and wait for it to complete
-    $Process = Start-Process -FilePath "msiexec.exe" -ArgumentList $MsiArguments -Wait -PassThru
+    $Process = Start-Process -FilePath 'msiexec.exe' -ArgumentList $MsiArguments -Wait -PassThru
     
     if ($Process.ExitCode -eq 0 -or $Process.ExitCode -eq 3010) {
-        Write-Host "Installation completed successfully." -ForegroundColor Green
+        Write-Host 'Installation completed successfully.' -ForegroundColor Green
         
-        # Add delay to allow WARP services to fully initialize before configuration
-        Write-Host "Waiting 30 seconds to allow WARP services to initialize before applying MDM configuration..." -ForegroundColor Cyan
-        Start-Sleep -Seconds 30
+        Write-Host "Waiting $ServiceInitDelaySeconds seconds to allow WARP services to initialize before applying MDM configuration..." -ForegroundColor Cyan
+        Start-Sleep -Seconds $ServiceInitDelaySeconds
         
-        # --- Write MDM Configuration XML (Step 7) ---
         Write-Host "Attempting to write MDM configuration to $MdmFilePath..." -ForegroundColor Yellow
 
-        # Use $teamName and $displayName from command line for the MDM configuration
         $XmlContent = @"
 <dict>
     <key>organization</key>
-    <string>$teamName</string>
+    <string>$TeamName</string>
     <key>display_name</key>
-    <string>$displayName</string>
+    <string>$DisplayName</string>
     <key>onboarding</key>
     <false/>
 </dict>
 "@
 
         try {
-            # Write the XML content using UTF8 encoding. Directory is already checked/created in Step 2.
             $XmlContent | Out-File -FilePath $MdmFilePath -Encoding UTF8 -Force
-            Write-Host "MDM configuration (mdm.xml) written successfully." -ForegroundColor Green
+            Write-Host 'MDM configuration (mdm.xml) written successfully.' -ForegroundColor Green
             
-            # --- Firewall Rule Creation (Part of Step 7) ---
-            Write-Host "Starting creation of necessary firewall rules..." -ForegroundColor Yellow
+            Write-Host 'Starting creation of necessary firewall rules...' -ForegroundColor Yellow
 
-            $WarpInstallDir = "C:\Program Files\Cloudflare\Cloudflare WARP"
+            $WarpInstallDir = 'C:\Program Files\Cloudflare\Cloudflare WARP'
             $WarpExecutables = @(
-                @{Name="Warp-Diag"; File="warp-diag.exe"},
-                @{Name="Warp-Svc"; File="warp-svc.exe"},
-                @{Name="Warp-Dex"; File="warp-dex.exe"}
+                @{Name='Warp-Diag'; File='warp-diag.exe'},
+                @{Name='Warp-Svc'; File='warp-svc.exe'},
+                @{Name='Warp-Dex'; File='warp-dex.exe'}
             )
 
             try {
@@ -282,31 +253,32 @@ try {
                     $ProgramPath = Join-Path -Path $WarpInstallDir -ChildPath $Exec.File
                     $BaseName = $Exec.Name
                     
-                    # Create Inbound Rule
-                    $DisplayNameIn = "Allow $($BaseName) Inbound"
-                    # Using ErrorAction SilentlyContinue to avoid errors if the rule already exists (idempotency)
-                    New-NetFirewallRule -DisplayName $DisplayNameIn -Direction Inbound -Program $ProgramPath -Action Allow -Profile Any -ErrorAction SilentlyContinue | Out-Null
-                    Write-Host "  -> Created/Ensured rule: '$DisplayNameIn'" -ForegroundColor Cyan
-
-                    # Create Outbound Rule
-                    $DisplayNameOut = "Allow $($BaseName) Outbound"
-                    New-NetFirewallRule -DisplayName $DisplayNameOut -Direction Outbound -Program $ProgramPath -Action Allow -Profile Any -ErrorAction SilentlyContinue | Out-Null
-                    Write-Host "  -> Created/Ensured rule: '$DisplayNameOut'" -ForegroundColor Cyan
+                    foreach ($Direction in @('Inbound', 'Outbound')) {
+                        $DisplayName = "Allow $BaseName $Direction"
+                        
+                        # Check if rule already exists to ensure idempotency
+                        $ExistingRule = Get-NetFirewallRule -DisplayName $DisplayName -ErrorAction SilentlyContinue
+                        if (-not $ExistingRule) {
+                            New-NetFirewallRule -DisplayName $DisplayName -Direction $Direction -Program $ProgramPath -Action Allow -Profile Any | Out-Null
+                            Write-Host "  -> Created rule: '$DisplayName'" -ForegroundColor Cyan
+                        } else {
+                            Write-Host "  -> Rule already exists: '$DisplayName'" -ForegroundColor Cyan
+                        }
+                    }
                 }
-                Write-Host "All required firewall rules created successfully." -ForegroundColor Green
+                Write-Host 'All required firewall rules created successfully.' -ForegroundColor Green
             }
             catch {
                 Write-Error "Failed to create one or more firewall rules: $($_.Exception.Message)"
-                Write-Warning "The WARP agent is installed and configured, but firewall rules may be missing."
+                Write-Warning 'The WARP agent is installed and configured, but firewall rules may be missing.'
             }
-            # --- END Firewall Rule Creation ---
         }
         catch {
             Write-Error "Failed to write MDM configuration file. Please check permissions: $($_.Exception.Message)"
         }
 
         if ($Process.ExitCode -eq 3010) {
-            Write-Host "A system reboot may be required to complete the installation." -ForegroundColor Cyan
+            Write-Host 'A system reboot may be required to complete the installation.' -ForegroundColor Cyan
         }
     }
     else {
@@ -318,19 +290,29 @@ catch {
     Write-Error "An unexpected error occurred during installation: $($_.Exception.Message)"
     exit 1
 }
+finally {
+    # Clean up WebView2 installer if downloaded
+    if ($WebView2Downloaded -and (Test-Path -Path $WebView2FilePath -PathType Leaf)) {
+        try {
+            Remove-Item -Path $WebView2FilePath -Force -ErrorAction Stop
+            Write-Host 'WebView2 installer cleaned up.' -ForegroundColor Green
+        }
+        catch {
+            Write-Warning "Could not remove WebView2 installer. Please delete it manually: $WebView2FilePath"
+        }
+    }
+}
 
 
-# 8. Clean up the downloaded file (Only clean up if the script performed the download)
 if ($InstallerDownloaded) {
-    Write-Host "Cleaning up installer file: $FileName" -ForegroundColor Yellow
+    Write-Host "Cleaning up installer file: $InstallerFileName" -ForegroundColor Yellow
     try {
         Remove-Item -Path $FilePath -Force -ErrorAction Stop
-        Write-Host "Cleanup complete." -ForegroundColor Green
+        Write-Host 'Cleanup complete.' -ForegroundColor Green
     }
     catch {
-        # Non-critical error, just log it.
         Write-Warning "Could not remove the installer file. Please delete it manually: $FilePath"
     }
 } else {
-    Write-Host "Installer was provided by user or already existed; skipping cleanup." -ForegroundColor Cyan
+    Write-Host 'Installer was provided by user or already existed; skipping cleanup.' -ForegroundColor Cyan
 }
