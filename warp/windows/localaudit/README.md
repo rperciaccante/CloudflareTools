@@ -19,8 +19,9 @@ The audit criteria are derived from a comprehensive file and registry access log
 ---
 
 ## Sample Output
-When executed, the script provides real-time progress followed by a summarized report:
+When executed, the script provides real-time progress followed by a summarized report in the console:
 
+```text
 --- Cloudflare WARP Silent Audit Report ---
 
 Hostname: WORKSTATION-01
@@ -46,30 +47,13 @@ Checking Network Port Conflicts...
   [OK] Port 53 is free.
   [CONFLICT] Port 2408 used by AnotherVPNDaemon
 
---- FINAL AUDIT REPORT (Detailed) ---
+--- FINAL AUDIT REPORT ---
 
 Component      Pass/Fail Status  Details               Importance  Impact
 ---------      --------- ------  -------               ----------  ------
-Driver: Wintun PASS      Not Found Clean state           Informational No existing Wintun driver to conflict with.
-msiserver      PASS      Stopped   StartType: Manual     Critical    Handles MSI database and rollback.
-BFE            PASS      Running   StartType: Automatic  High        Manages firewall rules.
-WlanSvc        FAIL      Stopped   StartType: Disabled   Dependency  The CloudflareWARP service will fail to start.
-Write: C:\Prog PASS      Granted   Success               Critical    Binary and Log placement.
-Port:2408      FAIL      CONFLICT  Used by VPNApp        Critical    VPN tunnel will never establish a connection.
-
----
-
-## How to Use
-
-### 1. Requirements
-* **PowerShell 5.1 or higher**.
-* **Execution Policy**: Must be set to allow script execution (e.g., `Set-ExecutionPolicy RemoteSigned -Scope Process`).
-
-### 2. Running the Script
-To get the most accurate results, run the script in two different contexts:
-1.  **As a Standard User**: To see what permissions a typical user lacks.
-2.  **As an Administrator**: To verify that the system environment is healthy even when full privileges are granted.
-
-**Command:**
-```powershell
-.\permissions_audit.ps1
+Driver: Wintun PASS      Not Found Clean state           Info        No conflicts.
+msiserver      PASS      Stopped   StartType: Manual     Critical    Handles MSI DB.
+BFE            PASS      Running   StartType: Automatic  High        Manages Firewall.
+WlanSvc        FAIL      Stopped   StartType: Disabled   Dependency  Service won't start.
+Write: C:\Prog PASS      Granted   Success               Critical    Binary placement.
+Port:2408      FAIL      CONFLICT  Used by VPNApp        Critical    Tunnel will fail.
