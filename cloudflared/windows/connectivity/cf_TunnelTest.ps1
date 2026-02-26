@@ -43,6 +43,14 @@ $hostsToTest = @(
    [PSCustomObject]@{ Hostname = "region2.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared Global Region 2 (http2)" },
    [PSCustomObject]@{ Hostname = "region2.v2.argotunnel.com"; Port = 7844; Protocol = "UDP"; Description = "Cloudflared Global Region 2 (quic)" },
 
+   # Cloudflare Fedramp Region 1
+   [PSCustomObject]@{ Hostname = "fed-region1.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared Global Region 1 (http2)" },
+   [PSCustomObject]@{ Hostname = "fed-region1.v2.argotunnel.com"; Port = 7844; Protocol = "UDP"; Description = "Cloudflared Global Region 1 (quic)" },
+
+   # Cloudflare Fedramp Region 2
+   [PSCustomObject]@{ Hostname = "fed-region2.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared Global Region 1 (http2)" },
+   [PSCustomObject]@{ Hostname = "fed-region2.v2.argotunnel.com"; Port = 7844; Protocol = "UDP"; Description = "Cloudflared Global Region 1 (quic)" },
+
    # Cloudflare US Region 1
    [PSCustomObject]@{ Hostname = "us-region1.v2.argotunnel.com"; Port = 7844; Protocol = "TCP"; Description = "Cloudflared US Region 1 (http2)" },
    [PSCustomObject]@{ Hostname = "us-region1.v2.argotunnel.com"; Port = 7844; Protocol = "UDP"; Description = "Cloudflared US Region 1 (quic)" },
