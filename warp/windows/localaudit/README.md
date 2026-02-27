@@ -2,102 +2,96 @@
 
 ## Overview
 
-The **Cloudflare WARP Unified Audit & Investigative Tool** is an exhaustive, non-interactive diagnostic suite designed to identify environmental barriers preventing the successful installation, connection, and performance of the Cloudflare WARP agent.
+The **Cloudflare WARP Unified Audit & Investigative Tool** is a cumulative, high-integrity diagnostic suite designed for exhaustive environmental analysis. This tool was engineered using a "Multi-Phase Forensic Approach," with every test derived from deep-packet and process-level analysis of **Process Monitor (Procmon)** logs across all functional modules of the Cloudflare WARP client: **Installation (`msiexec`)**, **Service Runtime (`warp-svc`)**, **Diagnostic Engine (`warp-diag`)**, and **Digital Experience Monitoring (`warp-dex`)**.
 
-Unlike standard diagnostic tools, this suite was engineered using a "Two-Phase" forensic approach. Every check is derived from an in-depth analysis of **Process Monitor (Procmon)** logs captured during both the initial installation phase and active runtime service execution. It captures high-fidelity data regarding filesystem permissions, registry integrity, network stack governance, and system-wide persistence.
-
----
-
-## Complete Feature List
-
-### 1. Installation Readiness Audit
-
-Derived from `install_logfile.csv`, this phase identifies why the MSI installer might fail or roll back:
-
-* **Windows Installer (msiserver) State**: Verifies the service is not disabled. It accounts for the fact that `msiserver` is often stopped by default and marks it as a PASS if it is in "Manual" or "Running" mode.
-* **Certificate Store Integrity**: Performs a literal write-test to `HKLM:\SOFTWARE\Microsoft\SystemCertificates`. This ensures the installer can deploy the Cloudflare Root CA required for Zero Trust and HTTPS inspection.
-* **Installer Cache Access**: Validates write permissions for `C:\Windows\Installer`, a common point of failure for MSI extraction.
-* **DLL Dependency Verification**: Explicitly checks for the presence of `dnsapi.dll`, a core requirement for the agent's local DNS proxy.
-* **ARM64 Translation Audit**: Identifies ARM64 architectures and validates access to `C:\Windows\xtacache`. This prevents failures in the x64-to-ARM binary translation layer.
-
-### 2. Runtime Service Health & Permissions
-
-Derived from `run_logfile.csv`, this phase identifies why the agent might be "Stuck on Connecting" or failing to stay stable:
-
-* **Service Binary Path Integrity**: Queries the literal `PathName` from the registry for `BFE`, `Dnscache`, and `WlanSvc`. This detects if "debloating" scripts or malware have redirected or hijacked essential system services.
-* **Persistence & Snapshots**: Validates "Modify" permissions for `C:\ProgramData\Cloudflare\snapshots` and `warp-diag-partials`. These folders are critical for the service to "remember" connection states after reboots.
-* **WinSock & Interface Tuning**: Audits read access to the `WinSock2` Protocol Catalog and the `Tcpip\Interfaces` registry hives. If restricted, the agent cannot assign local IP addresses to the virtual adapter.
-* **System Profile Access**: Checks for the existence and accessibility of the `SYSTEM` account’s credential store (`AppData\Roaming\Microsoft\Credentials`) to ensure persistent authentication.
-
-### 3. Network Stack & Socket Governance
-
-Audits the OS parameters that govern high-volume socket traffic and encrypted tunneling:
-
-* **MTU (Maximum Transmission Unit)**: Captures the MTU for every active interface. This is critical for preventing packet fragmentation caused by VPN header overhead.
-* **Ephemeral Port Range**: Reports the dynamic port range for both TCP and UDP. This identifies "Port Exhaustion" scenarios where the agent cannot open new control sockets.
-* **NRPT (Name Resolution Policy Table)**: Dumps the NRPT to identify "Stale" DNS rules from previous VPNs (Cisco, AnyConnect, DirectAccess) that might be hijacking WARP's DNS queries.
-* **Network Category Profile**: Specifically flags adapters set to the "Public" profile. Windows Firewall defaults to stricter blocking on Public profiles, which can intermittently drop WARP control traffic.
-* **Hosts File Redirect Audit**: Scans the system `hosts` file and issues a **WARN** in the final report if non-commented redirects are found, which could interfere with tunnel resolution.
-
-### 4. Deep-Dive Forensic Collection
-
-Exhaustively maps the system state to identify third-party conflicts:
-
-* **Global Application Inventory**: A unified scan of HKLM (64/32-bit) and HKCU registry hives. This identifies software installed at both the System and User level, uncovering "hidden" user-level VPNs or security tools.
-* **Startup Persistence Audit**: Maps every boot-persistence item across the OS, including Registry `Run` keys, Startup Folders (User and Common), and WMI Startup Objects.
-* **Task Scheduler Analysis**: Extracts all active tasks, including their literal **Triggers** and **Execution Commands**, to find background scripts that might be resetting network adapters.
-* **System & User PATH Audit**: Captures both environment variables and splits them line-by-line. This helps debug failures where WARP CLI tools (`warp-cli`) are not being properly resolved.
+The script is strictly additive and operates under a **Cumulative Integrity Directive**, ensuring that no legacy tests are removed or simplified. It provides a "Three-Table" reporting outcome that visually differentiates between Core Readiness, Diagnostic Platform Health, and Experience Monitoring parameters.
 
 ---
 
-## Detailed Outcomes & Reporting Logic
+## Detailed Audit Pillars
 
-The tool generates a high-visibility summary table and logs specific execution results to ensure that even "internal" script failures are trackable.
+### 1. Phase 1: Installation Readiness & Log-Derived Audit
 
-### Summary Report Statuses
+This pillar ensures the underlying OS environment permits the foundational setup of the agent:
 
-* **PASS**: The component meets all requirements for Cloudflare WARP.
-* **FAIL**: A critical barrier was found (e.g., Access Denied to a mandatory registry hive).
-* **WARN**: A potential conflict was found (e.g., an existing Wintun driver or a "Public" network profile) that may degrade performance.
-* **EXECUTION ERROR**: This is a high-transparency status. If a diagnostic command (like `tracert` or `Get-WmiObject`) fails due to a system-level error or permissions, the **literal Exception Message** or **Non-Zero Exit Code** is displayed in the summary table.
+* **Wintun Driver Integrity**: Audits the system for existing `Wintun` driver versions. Conflicting drivers from other VPN providers (OpenVPN, WireGuard) are flagged as **WARN** to prevent kernel-level adapter collisions.
+* **Certificate Store Write-Access**: Performs a real-time write-test to `HKLM:\SOFTWARE\Microsoft\SystemCertificates`. This is critical for the injection of the Cloudflare Root CA, which is the backbone of Zero Trust HTTPS inspection.
+* **DLL Dependency Mapping**: Validates the presence of `dnsapi.dll`, `dhcpcsvc.dll`, and `dhcpcsvc6.dll`. These files are frequently queried during setup and are required for the agent to hook into the Windows IP stack.
+* **ARM64 Translation Layer**: Specifically for Snapdragon and ARM-based devices, the script audits the `C:\Windows\xtacache` directory. Without write access here, the x64-to-ARM64 translation fails, causing the service to crash on launch.
 
-### Technical Rationale Table
+### 2. Phase 2: Runtime Service & Permission Audit
 
-| Component | Audit Source | Rationale | Impact of Failure |
+This pillar monitors the stability of the active background daemon:
+
+* **Forensic Service Mapping**: Unlike standard checks, this script extracts the **literal binary PathName** for `BFE`, `Dnscache`, `msiserver`, and `WlanSvc`. This detects "ghost services" or redirections caused by "debloat" scripts that silently break WARP.
+* **Telemetry & Snapshot Persistence**: Performs modify-access tests on `C:\ProgramData\Cloudflare\snapshots` and `warp-diag-partials`. These paths allow the service to persist connection states across reboots.
+* **System Profile Integrity**: Audits the `SYSTEM` account’s access to its own credential store in `C:\Windows\System32\config\systemprofile`. Restricted access here prevents the agent from storing persistent Zero Trust authentication tokens.
+
+### 3. Socket Governance & Network Stack
+
+This pillar audits the low-level TCP/IP parameters required for high-volume socket traffic:
+
+* **MTU (Maximum Transmission Unit)**: Logs the MTU of every active interface to `mtu_audit.txt`. This is used to diagnose packet fragmentation issues where the tunnel overhead exceeds the physical link capacity.
+* **Ephemeral Port Exhaustion**: Audits the `netsh` dynamic port range. If the range is too small, the WARP agent will fail to open control sockets, resulting in "Socket Error" or "Media Disconnected" statuses.
+* **NRPT Policy (Name Resolution Policy Table)**: Dumps the NRPT to identify stale rules from legacy VPNs (DirectAccess, AnyConnect) that may be hijacking DNS queries intended for the WARP local proxy.
+
+### 4. Deep-Dive Forensics (System & User Scope)
+
+A comprehensive inventory of the system state to identify third-party interference:
+
+* **Global Application Inventory**: Scans HKLM (64/32-bit) and HKCU to provide a unified list of software. This identifies "user-only" VPN installations that standard system-wide audits miss.
+* **Startup Persistence Audit**: Maps every boot-persistence item across Registry `Run` keys, Startup Folders, and WMI Startup Objects for both the System and the active User.
+* **Environment PATH Audit**: Captures and splits the **System vs. User PATH** variables. Misconfigured paths prevent the `warp-cli` from communicating with the background daemon.
+* **Scheduled Task Map**: Lists active tasks with their literal **Triggers** and **Execution Commands** to find background scripts that reset network adapters.
+
+### 5. warp-diag: Diagnostic Platform Audit
+
+This section ensures the agent's own troubleshooting tools can function:
+
+* **Diagnostic Staging Access**: Verifies write access to `packet_captures` and `qlogs` staging directories. If these are blocked, support bundles will be empty.
+* **WinSock Namespace Catalog**: Audits `NameSpace_Catalog5` to ensure the diagnostic engine can identify third-party Layered Service Providers (LSPs) that interfere with socket creation.
+* **IPv6 Interface Tuning**: Queries the `Tcpip6\Parameters\Interfaces` registry hive to ensure the agent can monitor IPv6 tunnel health.
+
+### 6. warp-dex: Digital Experience Audit
+
+This section audits the monitoring metadata used for Zero Trust Experience scores:
+
+* **Cryptnet URL Cache**: Audits `C:\Windows\System32\config\systemprofile\AppData\LocalLow\Microsoft\CryptnetUrlCache`. Access here is required for DEX to monitor certificate validation latencies and URL "Experience" metrics.
+* **DNS Experience Parameters**: Probes the `Dnscache\Parameters` hive to ensure DEX can accurately report on local resolution behavior and NetBIOS interference.
+* **Crypto OID Configuration**: Audits the Certificate Chain Engine metadata to identify if certificate performance monitoring is being restricted by local security policies.
+
+---
+
+## Robust Reporting Standards
+
+To ensure the data is "Analysis-Ready" for support teams and automated log aggregators:
+
+* **Standardized Lowercase**: All 28+ output files and the final ZIP use a **strict lowercase naming convention**.
+* **Status & Exception Capture**: The Final Report includes an `Exit Code / Exception` column. If any diagnostic command fails, the literal error message (e.g., *Access Denied* or *WMI Class Not Found*) is preserved for remediation.
+* **Consolidated Archive**: All artifacts, including the "Three-Table" summary report, are bundled into a single ZIP file named `warp_preinstall_audit_{hostname}_{timestamp}.zip`.
+
+---
+
+## Technical Manifesto (Outcome Table)
+
+| Component | Forensic Origin | Audit Purpose | Failure Consequence |
 | --- | --- | --- | --- |
-| **CertStore Write** | `install_logfile.csv` | Installer must inject Root CA. | "Privacy Error" or No Zero Trust connection. |
-| **WinSock Catalog** | `run_logfile.csv` | Agent hooks into the network stack. | "Protocol Error" or "Media Disconnected." |
-| **MTU Settings** | Network Stack | VPNs add encapsulation overhead. | Severe packet loss and speed degradation. |
-| **NRPT Policy** | VPN Forensics | Directs DNS queries to specific tunnels. | DNS Leaks or "Domain Not Found" errors. |
-| **BFE/Dnscache Path** | Forensic Audit | Ensures services are genuine system files. | Silently broken DNS proxy or Firewall. |
+| **CertStore Write** | `install_logfile` | Root CA injection for HTTPS. | SSL inspection fails; browsers show "Privacy Error." |
+| **WinSock Catalog** | `run_logfile` | Network stack hooking. | "Protocol Error" or "No Internet" on tunnel. |
+| **MTU Settings** | Stack Audit | Encapsulation overhead. | 90% speed loss due to fragmentation. |
+| **Cryptnet Cache** | `warp-dex` log | Experience Monitoring. | DEX score remains 0; no telemetry for support. |
+| **xtacache** | `install_logfile` | ARM64 x64 Translation. | Service crashes immediately on ARM devices. |
 
 ---
 
 ## How to Use
 
-1. **Elevation**: This script **requires Administrator privileges** to perform write-tests on HKLM and audit the System Profile.
-2. **Execution**:
-`.\warp_audit.ps1`
-3. **Filenames**: All output files use a strict **lowercase naming convention** to ensure they are compatible with Linux-based log analysis tools and cross-platform forensics.
-4. **Artifact Generation**: The script automatically bundles the final report and 27 individual diagnostic files into a compressed ZIP file:
-`warp_preinstall_audit_{hostname}_{timestamp}.zip`
-
----
-
-## File Manifest (Inside the ZIP)
-
-* `00_final_audit_report.txt`: The executive summary table and error log.
-* `installed_applications.txt`: Full System and User software inventory.
-* `startup_apps.txt`: All boot-persistence items.
-* `scheduled_tasks.txt`: All active tasks with triggers and actions.
-* `path_variables.txt`: Line-by-line split of System and User PATHs.
-* `mtu_audit.txt`: MTU settings for all network adapters.
-* `dns_nrpt_policy.txt`: Active Name Resolution Policy Table.
-* `network_profiles.txt`: Connection categories (Public/Private).
-* `23+ Secondary Diagnostics`: Detailed logs for `ipconfig`, `route`, `drivers`, `firewall`, `netstat`, and more.
+1. **Elevation**: Must be run as **Administrator** to access `systemprofile` and `HKLM` hives.
+2. **Command**: `.\warp_audit.ps1`
+3. **Result**: Review the three summary tables in the console, as well as the output files stored in the ZIP file in the directory where the script was run
 
 ---
 
 ## Disclaimer
 
-This tool is for diagnostic purposes and identifies environmental barriers discovered in WARP installer and runtime logs. It does not remediate settings or modify the system permanently.
+This tool is for diagnostic purposes and identifies potential environmental barriers discovered in WARP installer and runtime logs. It does not remediate settings or modify the system in any way.
