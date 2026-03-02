@@ -14,8 +14,8 @@
 #  Original Author: 
 #  Gemini
 #   
-#   Maintaining Author:
-#   Bob Perciaccante
+#  Maintaining Author:
+#  Bob Perciaccante
 #
 #   Version: 1.4 - March 2, 2026
 #   - Updated nc flags to match Cloudflare connectivity pre-checks documentation
@@ -28,7 +28,7 @@
 #   - Added test for DNS (UDP/53) to Cloudflare 1.1.1.1/1.0.0.1
 #
 # EXAMPLE
-#     ./test_connections.sh
+#     ./cf_TunnelTest.sh
 #     This will run the script and display the test results to the console.
 #
 # LINK
