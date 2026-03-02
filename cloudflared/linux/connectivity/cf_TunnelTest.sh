@@ -41,6 +41,22 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
+CYAN='\033[0;36m'
+
+# Script metadata
+SCRIPT_NAME="cf_TunnelTest.sh"
+SCRIPT_VERSION="1.4"
+
+# Print script info banner
+echo -e "${CYAN}============================================================${NC}"
+echo -e "${CYAN}Cloudflare Tunnel Connectivity Pre-Check v${SCRIPT_VERSION}"
+echo -e "${CYAN}Script:    ${NC}${SCRIPT_NAME} v${SCRIPT_VERSION}"
+echo -e "${CYAN}Hostname:  ${NC}$(hostname)"
+echo -e "${CYAN}Run Time:  ${NC}$(date '+%Y-%m-%d %H:%M:%S %Z')"
+echo -e "${CYAN}Run As:    ${NC}$(whoami)"
+echo -e "${CYAN}Run From:  ${NC}$(pwd)"
+echo -e "${CYAN}============================================================${NC}"
+echo ""
 
 # Define the list of hosts, ports, protocols, and descriptions to test.
 # Each entry is a string with values separated by commas.
