@@ -1,0 +1,40 @@
+[0;36m============================================================[0m
+[0;36mCloudflare Tunnel Connectivity Pre-Check v1.4
+[0;36mScript:    [0mcf_TunnelTest.sh v1.4
+[0;36mHostname:  [0mLCDG4GLXMV
+[0;36mRun Time:  [0m2026-03-02 08:33:09 EST
+[0;36mRun As:    [0mbob
+[0;36mRun From:  [0m/Users/bob/projects/cf-rtools/CloudflareTools/cloudflared/linux/connectivity
+[0;36m============================================================[0m
+
+[0;33mStep 2: Running DNS resolution tests with dig...[0m
+  dig A region1.v2.argotunnel.com ... [0;32mOK[0m (e.g. 198.41.192.227)
+  dig AAAA region1.v2.argotunnel.com ... [0;32mOK[0m (e.g. 2606:4700:a0::8)
+  dig A region2.v2.argotunnel.com ... [0;32mOK[0m (e.g. 198.41.200.63)
+  dig AAAA region2.v2.argotunnel.com ... [0;32mOK[0m (e.g. 2606:4700:a8::4)
+  dig A us-region1.v2.argotunnel.com ... [0;32mOK[0m (e.g. 198.41.218.9)
+  dig AAAA us-region1.v2.argotunnel.com ... [0;32mOK[0m (e.g. 2606:4700:a1::9)
+  dig A us-region2.v2.argotunnel.com ... [0;32mOK[0m (e.g. 198.41.219.10)
+  dig AAAA us-region2.v2.argotunnel.com ... [0;32mOK[0m (e.g. 2606:4700:a9::3)
+
+[0;33mStep 2.2: Comparing DNS against 1.1.1.1 resolver...[0m
+  dig A region1.v2.argotunnel.com @1.1.1.1 ... [0;32mOK[0m (e.g. 198.41.192.227)
+  dig A region2.v2.argotunnel.com @1.1.1.1 ... [0;32mOK[0m (e.g. 198.41.200.233)
+  dig A us-region1.v2.argotunnel.com @1.1.1.1 ... [0;32mOK[0m (e.g. 198.41.218.2)
+  dig A us-region2.v2.argotunnel.com @1.1.1.1 ... [0;32mOK[0m (e.g. 198.41.219.10)
+
+[0;33mStep 3: Starting TCP/UDP connection tests...[0m
+Testing connection to region1.v2.argotunnel.com on port 7844 (TCP) - Cloudflare Global Region 1 (http2)...[0;32mPASSED[0m
+Testing connection to region1.v2.argotunnel.com on port 7844 (UDP) - Cloudflare Global Region 1 (quic)...[0;32mPASSED[0m
+Testing connection to region2.v2.argotunnel.com on port 7844 (TCP) - Cloudflare Global Region 2 (http2)...[0;32mPASSED[0m
+Testing connection to region2.v2.argotunnel.com on port 7844 (UDP) - Cloudflare Global Region 2 (quic)...[0;32mPASSED[0m
+Testing connection to us-region1.v2.argotunnel.com on port 7844 (TCP) - Cloudflare US Region 1 (http2)...[0;32mPASSED[0m
+Testing connection to us-region1.v2.argotunnel.com on port 7844 (UDP) - Cloudflare US Region 1 (quic)...[0;32mPASSED[0m
+Testing connection to us-region2.v2.argotunnel.com on port 7844 (TCP) - Cloudflare US Region 2 (http2)...[0;32mPASSED[0m
+Testing connection to us-region2.v2.argotunnel.com on port 7844 (UDP) - Cloudflare US Region 2 (quic)...[0;32mPASSED[0m
+Testing connection to api.cloudflare.com on port 443 (TCP) - Cloudflared Update Server (HTTPS)...[0;32mPASSED[0m
+Testing connection to update.argotunnel.com on port 443 (TCP) - Cloudflared Update Server (HTTPS)...[0;32mPASSED[0m
+Testing connection to 1.1.1.1 on port 53 (UDP) - Cloudflare DNS Query (UDP)...[0;32mPASSED[0m
+Testing connection to 1.0.0.1 on port 53 (UDP) - Cloudflare DNS Query (UDP)...[0;32mPASSED[0m
+
+[0;33mAll tests complete.[0m

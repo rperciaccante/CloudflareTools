@@ -31,6 +31,9 @@
 #     ./cf_TunnelTest.sh
 #     This will run the script and display the test results to the console.
 #
+#     ./cf_TunnelTest.sh -o results.txt
+#     Save the output to results.txt (colors stripped).
+#
 # LINK
 #     https://linux.die.net/man/1/nc
 #     https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/troubleshoot-tunnels/connectivity-prechecks/
@@ -46,6 +49,26 @@ CYAN='\033[0;36m'
 # Script metadata
 SCRIPT_NAME="cf_TunnelTest.sh"
 SCRIPT_VERSION="1.4"
+
+# Parse command-line options
+OUTPUT_FILE=""
+while getopts ":o:" opt; do
+    case $opt in
+        o)
+            OUTPUT_FILE="$OPTARG"
+            ;;
+        \?)
+            echo "Usage: $0 [-o output_file]"
+            exit 1
+            ;;
+    esac
+done
+
+# If -o specified, tee output to file (with colors stripped)
+if [ -n "$OUTPUT_FILE" ]; then
+    exec > >(tee >(sed 's/\x1b\[[0-9;]*m//g' > "$OUTPUT_FILE"))
+    exec 2>&1
+fi
 
 # Print script info banner
 echo -e "${CYAN}============================================================${NC}"
