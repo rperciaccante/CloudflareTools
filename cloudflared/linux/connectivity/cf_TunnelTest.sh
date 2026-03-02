@@ -11,8 +11,12 @@
 #     passed and which failed, along with a custom description.
 #
 # NOTES  
-#  Maintaining Author:
-#  Bob Perciaccante
+#  *** This is not an official Cloudflare troubleshooting script. It is a
+#  *** custom script created by a Cloufdlare engineer to help with troubleshooting
+#  *** Cloudflare Tunnel connectivity issues. Tests are based on the official
+#  *** Cloudflare connectivity pre-checks documentation located at 
+#  *** https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/troubleshoot-tunnels/connectivity-prechecks/#3-test-network-connectivity 
+#  *** and updated as of the latest release below.
 #
 #   Version: 1.4 - March 2, 2026
 #   - Updated nc flags to match Cloudflare connectivity pre-checks documentation
@@ -72,6 +76,8 @@ OPTIONS
                         full output for each test. Useful for diagnostics.
     -o <file>           Save output to <file> with ANSI colors stripped.
                         Terminal output is unaffected.
+    -s                  Silent mode. Suppress all console output and write
+                        only to the file specified by -o. Requires -o.
 
 EXAMPLES
     ./${SCRIPT_NAME}
@@ -87,6 +93,12 @@ EXAMPLES
     ./${SCRIPT_NAME} -v -o results.txt
         Verbose output to the terminal and a plain-text file, suitable
         for attaching to a Cloudflare support ticket.
+
+    ./${SCRIPT_NAME} -s -o results.txt
+        Run silently with no console output; results saved to file only.
+
+    ./${SCRIPT_NAME} -v -s -o results.txt
+        Verbose results written to file only, nothing on the console.
 
 TESTS PERFORMED
     Step 2  - DNS resolution (dig A/AAAA) for tunnel region endpoints,
@@ -110,10 +122,14 @@ done
 # Parse command-line options
 OUTPUT_FILE=""
 VERBOSE=false
-while getopts ":hvo:" opt; do
+SILENT=false
+while getopts ":hsvo:" opt; do
     case $opt in
         h)
             show_help
+            ;;
+        s)
+            SILENT=true
             ;;
         v)
             VERBOSE=true
@@ -122,14 +138,24 @@ while getopts ":hvo:" opt; do
             OUTPUT_FILE="$OPTARG"
             ;;
         \?)
-            echo "Usage: $0 [-h] [-v] [-o output_file]"
+            echo "Usage: $0 [-h] [-v] [-s] [-o output_file]"
             exit 1
             ;;
     esac
 done
 
-# If -o specified, tee output to file (with colors stripped)
-if [ -n "$OUTPUT_FILE" ]; then
+# Silent mode requires -o
+if [ "$SILENT" == true ] && [ -z "$OUTPUT_FILE" ]; then
+    echo "Error: -s (silent) requires -o <file>."
+    echo "Usage: $0 [-h] [-v] [-s] [-o output_file]"
+    exit 1
+fi
+
+# Set up output redirection
+if [ "$SILENT" == true ]; then
+    exec > >(sed 's/\x1b\[[0-9;]*m//g' > "$OUTPUT_FILE")
+    exec 2>&1
+elif [ -n "$OUTPUT_FILE" ]; then
     exec > >(tee >(sed 's/\x1b\[[0-9;]*m//g' > "$OUTPUT_FILE"))
     exec 2>&1
 fi
