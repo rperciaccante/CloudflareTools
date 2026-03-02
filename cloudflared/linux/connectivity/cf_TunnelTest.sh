@@ -211,6 +211,8 @@ dns_hosts=(
     "region2.v2.argotunnel.com"
     "us-region1.v2.argotunnel.com"
     "us-region2.v2.argotunnel.com"
+    "fed-region1.v2.argotunnel.com"
+    "fed-region2.v2.argotunnel.com"
 )
 
 echo -e "${YELLOW}Step 2: Running DNS resolution tests with dig...${NC}"
