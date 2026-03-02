@@ -10,10 +10,7 @@
 #     connections. It provides a colored output to clearly indicate which tests
 #     passed and which failed, along with a custom description.
 #
-# NOTES
-#  Original Author: 
-#  Gemini
-#   
+# NOTES  
 #  Maintaining Author:
 #  Bob Perciaccante
 #
@@ -34,6 +31,12 @@
 #     ./cf_TunnelTest.sh -o results.txt
 #     Save the output to results.txt (colors stripped).
 #
+#     ./cf_TunnelTest.sh -v
+#     Run with verbose output showing exact commands and full results.
+#
+#     ./cf_TunnelTest.sh -v -o results.txt
+#     Verbose output saved to file for use in a support ticket.
+#
 # LINK
 #     https://linux.die.net/man/1/nc
 #     https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/troubleshoot-tunnels/connectivity-prechecks/
@@ -50,15 +53,76 @@ CYAN='\033[0;36m'
 SCRIPT_NAME="cf_TunnelTest.sh"
 SCRIPT_VERSION="1.4"
 
+# Help function
+show_help() {
+    cat <<EOF
+${SCRIPT_NAME} v${SCRIPT_VERSION} - Cloudflare Tunnel Connectivity Pre-Check
+
+SYNOPSIS
+    Validates DNS resolution and network connectivity to Cloudflare Tunnel
+    endpoints before deploying cloudflared. Tests are based on the official
+    Cloudflare connectivity pre-checks documentation.
+
+USAGE
+    ./${SCRIPT_NAME} [OPTIONS]
+
+OPTIONS
+    -h, --help          Show this help message and exit.
+    -v                  Verbose mode. Display the exact command run and
+                        full output for each test. Useful for diagnostics.
+    -o <file>           Save output to <file> with ANSI colors stripped.
+                        Terminal output is unaffected.
+
+EXAMPLES
+    ./${SCRIPT_NAME}
+        Run all tests and display results to the console.
+
+    ./${SCRIPT_NAME} -v
+        Run all tests with verbose output showing each command and its
+        full result.
+
+    ./${SCRIPT_NAME} -o results.txt
+        Run all tests and save a plain-text copy to results.txt.
+
+    ./${SCRIPT_NAME} -v -o results.txt
+        Verbose output to the terminal and a plain-text file, suitable
+        for attaching to a Cloudflare support ticket.
+
+TESTS PERFORMED
+    Step 2  - DNS resolution (dig A/AAAA) for tunnel region endpoints,
+              with a comparison against the 1.1.1.1 resolver.
+    Step 3  - TCP and UDP connectivity (nc) to Cloudflare tunnel endpoints
+              on port 7844, plus HTTPS (443) update servers and DNS (53).
+
+REFERENCES
+    https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/troubleshoot-tunnels/connectivity-prechecks/
+EOF
+    exit 0
+}
+
+# Handle --help before getopts (getopts does not support long options)
+for arg in "$@"; do
+    if [ "$arg" == "--help" ]; then
+        show_help
+    fi
+done
+
 # Parse command-line options
 OUTPUT_FILE=""
-while getopts ":o:" opt; do
+VERBOSE=false
+while getopts ":hvo:" opt; do
     case $opt in
+        h)
+            show_help
+            ;;
+        v)
+            VERBOSE=true
+            ;;
         o)
             OUTPUT_FILE="$OPTARG"
             ;;
         \?)
-            echo "Usage: $0 [-o output_file]"
+            echo "Usage: $0 [-h] [-v] [-o output_file]"
             exit 1
             ;;
     esac
@@ -125,35 +189,53 @@ dns_hosts=(
 
 echo -e "${YELLOW}Step 2: Running DNS resolution tests with dig...${NC}"
 for dns_host in "${dns_hosts[@]}"; do
-    echo -n "  dig A $dns_host ... "
+    cmd="dig +short A $dns_host"
+    if [ "$VERBOSE" == true ]; then
+        echo -e "  ${CYAN}> $cmd${NC}"
+    fi
     dig_output=$(dig +short A "$dns_host" 2>/dev/null)
     if [ -n "$dig_output" ]; then
         first_ip=$(echo "$dig_output" | head -n1)
-        echo -e "${GREEN}OK${NC} (e.g. $first_ip)"
+        echo -e "  dig A $dns_host ... ${GREEN}OK${NC} (e.g. $first_ip)"
+        if [ "$VERBOSE" == true ]; then
+            echo "$dig_output" | while IFS= read -r line; do echo "    $line"; done
+        fi
     else
-        echo -e "${RED}FAILED (no A records returned)${NC}"
+        echo -e "  dig A $dns_host ... ${RED}FAILED (no A records returned)${NC}"
     fi
 
-    echo -n "  dig AAAA $dns_host ... "
+    cmd="dig +short AAAA $dns_host"
+    if [ "$VERBOSE" == true ]; then
+        echo -e "  ${CYAN}> $cmd${NC}"
+    fi
     dig_output=$(dig +short AAAA "$dns_host" 2>/dev/null)
     if [ -n "$dig_output" ]; then
         first_ip=$(echo "$dig_output" | head -n1)
-        echo -e "${GREEN}OK${NC} (e.g. $first_ip)"
+        echo -e "  dig AAAA $dns_host ... ${GREEN}OK${NC} (e.g. $first_ip)"
+        if [ "$VERBOSE" == true ]; then
+            echo "$dig_output" | while IFS= read -r line; do echo "    $line"; done
+        fi
     else
-        echo -e "${RED}FAILED (no AAAA records returned)${NC}"
+        echo -e "  dig AAAA $dns_host ... ${RED}FAILED (no AAAA records returned)${NC}"
     fi
 done
 
 # Compare against 1.1.1.1 resolver
 echo -e "\n${YELLOW}Step 2.2: Comparing DNS against 1.1.1.1 resolver...${NC}"
 for dns_host in "${dns_hosts[@]}"; do
-    echo -n "  dig A $dns_host @1.1.1.1 ... "
+    cmd="dig +short A $dns_host @1.1.1.1"
+    if [ "$VERBOSE" == true ]; then
+        echo -e "  ${CYAN}> $cmd${NC}"
+    fi
     dig_output=$(dig +short A "$dns_host" @1.1.1.1 2>/dev/null)
     if [ -n "$dig_output" ]; then
         first_ip=$(echo "$dig_output" | head -n1)
-        echo -e "${GREEN}OK${NC} (e.g. $first_ip)"
+        echo -e "  dig A $dns_host @1.1.1.1 ... ${GREEN}OK${NC} (e.g. $first_ip)"
+        if [ "$VERBOSE" == true ]; then
+            echo "$dig_output" | while IFS= read -r line; do echo "    $line"; done
+        fi
     else
-        echo -e "${RED}FAILED (no A records returned)${NC}"
+        echo -e "  dig A $dns_host @1.1.1.1 ... ${RED}FAILED (no A records returned)${NC}"
     fi
 done
 
@@ -175,6 +257,8 @@ for test_case in "${tests[@]}"; do
     echo -n "Testing connection to $hostname on port $port ($protocol) - $description..."
 
     is_successful=false
+    nc_cmd=""
+    nc_output=""
 
     # Check the protocol and run the appropriate test
     if [ "$protocol" == "UDP" ]; then
@@ -184,15 +268,16 @@ for test_case in "${tests[@]}"; do
         # The -z flag is used for zero-I/O mode.
         # -w 3 sets a 3-second timeout.
         # Ref: nc -uvz -w 3 <IP> <PORT>
-        # &>/dev/null redirects stdout and stderr to suppress output.
-        nc -uvz -w 3 "$hostname" "$port" &>/dev/null
+        nc_cmd="nc -uvz -w 3 $hostname $port"
+        nc_output=$(nc -uvz -w 3 "$hostname" "$port" 2>&1)
         if [ $? -eq 0 ]; then
             is_successful=true
         fi
     elif [ "$protocol" == "TCP" ]; then
         # Use nc for TCP test.
         # Ref: nc -vz -w 3 <IP> <PORT>
-        nc -vz -w 3 "$hostname" "$port" &>/dev/null
+        nc_cmd="nc -vz -w 3 $hostname $port"
+        nc_output=$(nc -vz -w 3 "$hostname" "$port" 2>&1)
         if [ $? -eq 0 ]; then
             is_successful=true
         fi
@@ -206,6 +291,14 @@ for test_case in "${tests[@]}"; do
         echo -e "${GREEN}PASSED${NC}"
     else
         echo -e "${RED}FAILED${NC}"
+    fi
+
+    # In verbose mode, show the exact command and its output
+    if [ "$VERBOSE" == true ]; then
+        echo -e "    ${CYAN}> $nc_cmd${NC}"
+        if [ -n "$nc_output" ]; then
+            echo "$nc_output" | while IFS= read -r line; do echo "      $line"; done
+        fi
     fi
 done
 
