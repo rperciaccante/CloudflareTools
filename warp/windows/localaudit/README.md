@@ -2,7 +2,7 @@
 
 ## Overview
 
-`localaudit.v2.ps1` is a comprehensive PowerShell diagnostic script that performs pre-installation readiness checks for Cloudflare WARP. It validates system requirements, services, permissions, network connectivity, and security configurations to identify potential issues before attempting WARP installation.
+This script is a comprehensive PowerShell diagnostic script that performs pre-installation readiness checks for Cloudflare WARP. It validates system requirements, services, permissions, network connectivity, and security configurations to identify potential issues before attempting WARP installation.
 
 ## Purpose
 
@@ -35,7 +35,7 @@ This script helps IT administrators and users:
 
 ```powershell
 # Run with administrator privileges
-.\localaudit.v2.ps1
+.\host_audit.ps1
 ```
 
 ### Output
@@ -372,11 +372,6 @@ Failed tests include:
 ### Official Cloudflare Documentation
 - [WARP Firewall Requirements](https://developers.cloudflare.com/cloudflare-one/connections/connect-devices/warp/deployment/firewall/)
 - [WARP Deployment Guide](https://developers.cloudflare.com/cloudflare-one/connections/connect-devices/warp/deployment/)
-
-### Script Maintenance
-- **Location:** `/Users/bob/projects/localaudit/`
-- **Main Script:** `localaudit.v2.ps1`
-- **Previous Version:** `localaudit.ps1` (archived in `.hold`)
 
 ---
 
